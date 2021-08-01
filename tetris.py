@@ -84,12 +84,9 @@ class Shape:
 			gameDisplay.blit(self.color, (x + pos[0]*w, y + pos[1]*h))
 
 	def randomColor(self): # Selects a random color
-		# return colorList[randint(0, len(colors) - 1)]
 		return choice(colorList)
-		#HOW DOES random.choice() work??
 
 	def randomShape(self): # Selects random shape from list of shape rotations
-		# return shapes[randint(0, len(shapes) - 1)]
 		return choice(shapeRotationsList)
 
 	def randomRotation(self): # Selects a random rotation from the shape's possible rotations
