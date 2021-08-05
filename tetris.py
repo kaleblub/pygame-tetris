@@ -78,6 +78,8 @@ class Shape:
 		self.fallSpeed = 10
 		self.horizontalMoveSpeed = 0
 
+	def __init__(self, )
+
 	def drawShape(self, x: int, y: int):
 		w, h = self.color.get_size()
 		for pos in self.currentRotation:
@@ -117,6 +119,7 @@ class Shape:
 # ------------- Main Game Function ---------------
 def runGame():
 	gameRunning = True
+	mainMenuOpen = True
 	gameOver = False
 	currentShape, nextShape = Shape(), Shape()
 	shapes = []
@@ -125,7 +128,7 @@ def runGame():
 	while gameRunning:
 
 # ----------- Game Over Menu -------------------
-		while gameOver == True:
+		while gameOver:
 			gameDisplay.fill(white)
 			pygame.display.update()
 			for event in pygame.event.get():
@@ -138,6 +141,30 @@ def runGame():
 						gameOver = False
 					if event.key == pygame.K_c:
 						runGame()
+
+# ---------------- Main Menu --------------------
+		while mainMenuOpen:
+			gameDisplay.fill('black')
+			font = pygame.font.SysFont(None, 200)
+			menuText = font.render("Tetris", True, 'red')
+			gameDisplay.blit(menuText, (displayWidth/4, displayHeight/3))
+			shapes = []
+			pygame.display.update()
+			for i in range(1, 15):
+				shapes.append(Shape())
+
+
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					mainMenuOpen = False
+					gameRunning = False
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_q:
+						gameRunning = False
+						mainMenuOpen = False
+					if event.key == pygame.K_c:
+						mainMenuOpen = False
+
 
 # -------------- Gameplay Handling -------------------
 		for event in pygame.event.get():
