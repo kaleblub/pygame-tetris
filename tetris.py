@@ -1,4 +1,5 @@
 import pygame
+import pickle
 from random import randint, randrange, choice
 # ----------- Game Initialization -------------------
 pygame.init()
@@ -10,20 +11,25 @@ pygame.display.set_caption('Tetris')
 clock = pygame.time.Clock()
 
 # ----------- Constants ---------------
-font = pygame.font.SysFont(None, 100)
+menuFont = pygame.font.SysFont(None, 200)
+secondaryFont = pygame.font.SysFont(None, 100)
+buttonFont = pygame.font.SysFont(None, 75)
 
 FPS = 20
 tileSize = 20
+backgroundColor = "black"
+mainTextColor = "lightgoldenrod1"
 boardWidth = 10
 boardHeight = 20
 
+# Build A List Of Colored Tiles To Use For The Shapes
 colors = ["red", "orange", "yellow", "green", "blue", "purple", "pink"]
 colorList = [pygame.Surface((tileSize, tileSize)) for i in range(len(colors))]
 for i in range(len(colors)):
 	colorList[i].fill(colors[i])
 
 
-shapeRotationsList = [
+shapeRotationsList = [ # The Shapes With Each Of Their Rotations
 	[ # Line shape
 		[(0,0), (1,0), (2,0), (3,0)], 
 		[(0,0), (0,1), (0,2), (0,3)]
@@ -63,8 +69,7 @@ shapeRotationsList = [
 class Button:
 	"""Class for a button. Create a button, 
 	then blit the surface in the while loop"""
-
-	def __init__(self, text, pos, font, textColor="white", bg="black", feedback=""):
+	def __init__(self, text, pos, font, textColor="white", bg=backgroundColor, feedback=""):
 		self.x, self.y = pos
 		self.font = font
 		self.textColor = textColor
@@ -74,7 +79,7 @@ class Button:
 			self.feedback = feedback
 		self.changeText(text, textColor, bg)
 
-	def changeText(self, text, textColor, bg="black"):
+	def changeText(self, text, textColor, bg=backgroundColor):
 		"""Change the text when you click"""
 		self.text = self.font.render(text, 1, textColor)
 		self.size = self.text.get_size()
@@ -108,7 +113,7 @@ class Shape:
 		self.fallSpeed = 10
 		self.horizontalMoveSpeed = 0
 
-	def drawShape(self, x: int, y: int):
+	def drawShape(self, x: int, y: int): # Method for drawing the shape
 		w, h = self.color.get_size()
 		for pos in self.currentRotation:
 			gameDisplay.blit(self.color, (x + pos[0]*w, y + pos[1]*h))
@@ -144,22 +149,36 @@ class Shape:
 			self.currentRotationIndex += 1 # Otherwise, just go up an index in the rotation list
 		self.currentRotation = self.shape[self.currentRotationIndex] # And set the shape's rotation to the one at that index
 
+def randomizedShapeDrop(shapeList):
+	if shapeList[-1].y > 70:
+		shapeList.append(Shape())
+	for shape in shapeList:
+		if shape.y >= displayHeight:
+			shapeList.remove(shape)
+		shape.y += shape.fallSpeed/10
+		shape.drawShape(shape.x, shape.y)
+
 # ------------- Main Game Function ---------------
 def runGame():
-	gameRunning = True
+	gameRunning = True 
 	mainMenuOpen = True
 	showingHighscores = False
 	gameOver = False
-	currentShape, nextShape = Shape(), Shape()
+	currentShape, nextShape = Shape(), Shape() # First two shapes initialized
 	shapes = []
-
 
 # ------------ Start Of Game Loop --------------
 	while gameRunning:
 
 # ----------- Game Over Menu -------------------
+		if gameOver:
+			gameOverText1 = menuFont.render("Game", True, mainTextColor)
+			gameOverText2 = menuFont.render("Over", True, mainTextColor)
 		while gameOver:
-			gameDisplay.fill(white)
+			gameDisplay.fill(backgroundColor)
+			randomizedShapeDrop(menuShapes)
+			gameDisplay.blit(gameOverText1, (displayWidth/4 - 40, displayHeight/4 - 150))
+			gameDisplay.blit(gameOverText2, (displayWidth/4, displayHeight/4))
 			pygame.display.update()
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
@@ -172,28 +191,20 @@ def runGame():
 					if event.key == pygame.K_c:
 						runGame()
 
-
 # ---------------- Main Menu --------------------
 		if mainMenuOpen:
 			menuShapes = [Shape()]
-			menuFont = pygame.font.SysFont(None, 200)
-			menuText = menuFont.render("Tetris", True, 'lightgoldenrod1')
+			menuText = menuFont.render("Tetris", True, mainTextColor)
 
-			buttonFont = pygame.font.SysFont(None, 75)
-			playButton = Button("Play", (displayWidth/3, 400), buttonFont, 'lightgoldenrod1')
-			highscoreButton = Button("Highscores", (displayWidth/3, 500), buttonFont, 'lightgoldenrod1')
+			playButton = Button("Play", (displayWidth/3, 400), buttonFont, mainTextColor)
+			highscoreButton = Button("Highscores", (displayWidth/3, 500), buttonFont, mainTextColor)
 
 		while mainMenuOpen:
-			gameDisplay.fill('black')
+			gameDisplay.fill(backgroundColor)
 
-			if menuShapes[-1].y > 70:
-				menuShapes.append(Shape())
-			for shape in menuShapes:
-				if shape.y >= displayHeight:
-					menuShapes.remove(shape)
-				shape.y += shape.fallSpeed/10
-				shape.drawShape(shape.x, shape.y)
+			randomizedShapeDrop(menuShapes)
 
+			# Blit the Title on the main menu
 			gameDisplay.blit(menuText, (displayWidth/4 - 30, displayHeight/4))
 
 			# Show the menu buttons
@@ -202,11 +213,13 @@ def runGame():
 
 			pygame.display.update()
 
-			# Menu Input Handling
+			# Main Menu Input Handling
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					mainMenuOpen = False
 					gameRunning = False
+					pygame.quit()
+					exit()
 				if event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_q:
 						gameRunning = False
@@ -217,7 +230,49 @@ def runGame():
 					if playButton.wasClicked():
 						mainMenuOpen = False
 					elif highscoreButton.wasClicked():
-						print("Highscores")
+						mainMenuOpen = False
+						showingHighscores = True
+
+# -------------- HighScores Screen -------------------
+		if showingHighscores:
+			highscoreText = secondaryFont.render("Highscores", True, mainTextColor)
+			try: # load the previous score if it exists
+				with open('score.dat', 'rb') as file:
+					score = pickle.load(file)
+			except FileNotFoundError:
+				score = 100
+			scoreText = secondaryFont.render(str(score), True, mainTextColor)
+			# HOW TO save the score
+			with open('score.dat', 'wb') as file:
+				pickle.dump(score, file)
+
+		while showingHighscores:
+			gameDisplay.fill(backgroundColor)
+			randomizedShapeDrop(menuShapes)
+			gameDisplay.blit(highscoreText, (displayWidth/4 - 20, displayHeight/4 - 150))
+			gameDisplay.blit(scoreText, (displayWidth/4 - 20, displayHeight/4))
+			pygame.display.update()
+
+			# HighScores Screen Input Handling
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					showingHighscores = False
+					gameRunning = False
+					pygame.quit()
+					exit()
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_q:
+						showingHighscores = False
+						gameRunning = False
+					if event.key == pygame.K_c:
+						showingHighscores = False
+
+				# if event.type == pygame.MOUSEBUTTONUP:
+				# 	if playButton.wasClicked():
+				# 		mainMenuOpen = False
+				# 	elif highscoreButton.wasClicked():
+				# 		mainMenuOpen = False
+				# 		showingHighscores = True
 
 # -------------- Gameplay Handling -------------------
 		for event in pygame.event.get():
@@ -247,7 +302,7 @@ def runGame():
 					exit()
 #  ---------------- Game Code -------------------
 		# Draw
-		gameDisplay.fill("black")
+		gameDisplay.fill(backgroundColor)
 
 		pygame.display.flip() # Updates the whole screen
 
