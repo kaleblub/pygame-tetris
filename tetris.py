@@ -17,7 +17,7 @@ tileSize = 20
 boardWidth = 10
 boardHeight = 20
 
-colors = ["red", "orange", "yellow", "green", "blue", "purple"]
+colors = ["red", "orange", "yellow", "green", "blue", "purple", "pink"]
 colorList = [pygame.Surface((tileSize, tileSize)) for i in range(len(colors))]
 for i in range(len(colors)):
 	colorList[i].fill(colors[i])
@@ -60,6 +60,37 @@ shapeRotationsList = [
 	
 ]
 
+class Button:
+	"""Class for a button. Create a button, 
+	then blit the surface in the while loop"""
+
+	def __init__(self, text, pos, font, textColor="white", bg="black", feedback=""):
+		self.x, self.y = pos
+		self.font = font
+		self.textColor = textColor
+		if feedback == "":
+			self.feedback = "text"
+		else:
+			self.feedback = feedback
+		self.changeText(text, textColor, bg)
+
+	def changeText(self, text, textColor, bg="black"):
+		"""Change the text when you click"""
+		self.text = self.font.render(text, 1, textColor)
+		self.size = self.text.get_size()
+		self.surface = pygame.Surface(self.size)
+		self.surface.fill(bg)
+		self.surface.blit(self.text, (0, 0))
+		self.rect = pygame.Rect(self.x, self.y, self.size[0], self.size[1])
+
+	def show(self):
+		gameDisplay.blit(self.surface, (self.x, self.y))
+
+	def wasClicked(self):
+		x, y = pygame.mouse.get_pos()
+		if self.rect.collidepoint(x, y):
+			return True		
+
 class Board:
 	"""Class for the tetris board"""
 	def __init__(self):
@@ -72,13 +103,10 @@ class Shape:
 		self.shape = self.randomShape()
 		self.currentRotation = self.randomRotation()
 		self.currentRotationIndex = self.shape.index(self.currentRotation)
-		print(self.currentRotation, self.currentRotationIndex)
 		self.x = randint(0, displayWidth)
-		self.y = 0
+		self.y = -20
 		self.fallSpeed = 10
 		self.horizontalMoveSpeed = 0
-
-	def __init__(self, )
 
 	def drawShape(self, x: int, y: int):
 		w, h = self.color.get_size()
@@ -120,9 +148,11 @@ class Shape:
 def runGame():
 	gameRunning = True
 	mainMenuOpen = True
+	showingHighscores = False
 	gameOver = False
 	currentShape, nextShape = Shape(), Shape()
 	shapes = []
+
 
 # ------------ Start Of Game Loop --------------
 	while gameRunning:
@@ -142,18 +172,37 @@ def runGame():
 					if event.key == pygame.K_c:
 						runGame()
 
+
 # ---------------- Main Menu --------------------
+		if mainMenuOpen:
+			menuShapes = [Shape()]
+			menuFont = pygame.font.SysFont(None, 200)
+			menuText = menuFont.render("Tetris", True, 'lightgoldenrod1')
+
+			buttonFont = pygame.font.SysFont(None, 75)
+			playButton = Button("Play", (displayWidth/3, 400), buttonFont, 'lightgoldenrod1')
+			highscoreButton = Button("Highscores", (displayWidth/3, 500), buttonFont, 'lightgoldenrod1')
+
 		while mainMenuOpen:
 			gameDisplay.fill('black')
-			font = pygame.font.SysFont(None, 200)
-			menuText = font.render("Tetris", True, 'red')
-			gameDisplay.blit(menuText, (displayWidth/4, displayHeight/3))
-			shapes = []
+
+			if menuShapes[-1].y > 70:
+				menuShapes.append(Shape())
+			for shape in menuShapes:
+				if shape.y >= displayHeight:
+					menuShapes.remove(shape)
+				shape.y += shape.fallSpeed/10
+				shape.drawShape(shape.x, shape.y)
+
+			gameDisplay.blit(menuText, (displayWidth/4 - 30, displayHeight/4))
+
+			# Show the menu buttons
+			playButton.show()
+			highscoreButton.show()
+
 			pygame.display.update()
-			for i in range(1, 15):
-				shapes.append(Shape())
 
-
+			# Menu Input Handling
 			for event in pygame.event.get():
 				if event.type == pygame.QUIT:
 					mainMenuOpen = False
@@ -164,7 +213,11 @@ def runGame():
 						mainMenuOpen = False
 					if event.key == pygame.K_c:
 						mainMenuOpen = False
-
+				if event.type == pygame.MOUSEBUTTONUP:
+					if playButton.wasClicked():
+						mainMenuOpen = False
+					elif highscoreButton.wasClicked():
+						print("Highscores")
 
 # -------------- Gameplay Handling -------------------
 		for event in pygame.event.get():
@@ -174,40 +227,31 @@ def runGame():
 				pass
 			if event.type == pygame.KEYDOWN:
 				if event.key == pygame.K_LEFT or event.key == ord('a'):
-					print('moving left')
 					currentShape.moveLeft()
 				if event.key == pygame.K_RIGHT or event.key == ord('d'):
-					print('moving right')
 					currentShape.moveRight()
 				if event.key == pygame.K_UP or event.key == ord('w'):
-					print('rotate')
 					currentShape.rotateShape()
 				if event.key == pygame.K_DOWN or event.key == ord('s'):
-					print('down')
 					currentShape.fallBoost()
 
 			if event.type == pygame.KEYUP:
 				if event.key == pygame.K_LEFT or event.key == ord('a'):
-					print('left stop')
 					currentShape.stopHorizontalMovement()
 				if event.key == pygame.K_RIGHT or event.key == ord('d'):
-					print('right stop')
 					currentShape.stopHorizontalMovement()
 				if event.key == pygame.K_DOWN or event.key == ord('s'):
-					print('down stop')
 					currentShape.fallSpeedReset()
-				if event.key == ord('q'):
+				if event.key == pygame.K_q:
 					pygame.quit()
-					sys.exit()
-					gameRunning = False
-
+					exit()
 #  ---------------- Game Code -------------------
 		# Draw
 		gameDisplay.fill("black")
 
 		pygame.display.flip() # Updates the whole screen
 
-		if currentShape.y == displayHeight:
+		if currentShape.y >= displayHeight:
 			currentShape, nextShape = nextShape, Shape()
 		else:
 			currentShape.y += currentShape.fallSpeed
