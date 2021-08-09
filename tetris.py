@@ -11,16 +11,18 @@ pygame.display.set_caption('Tetris')
 clock = pygame.time.Clock()
 
 # ----------- Constants ---------------
-menuFont = pygame.font.SysFont(None, 200)
-secondaryFont = pygame.font.SysFont(None, 100)
-buttonFont = pygame.font.SysFont(None, 75)
-
 FPS = 20
 tileSize = 20
 backgroundColor = "black"
 mainTextColor = "lightgoldenrod1"
 boardWidth = 10
 boardHeight = 20
+
+menuFont = pygame.font.SysFont(None, 200)
+secondaryFont = pygame.font.SysFont(None, 100)
+buttonFont = pygame.font.SysFont(None, 75)
+controlsFont = pygame.font.SysFont(None, 20)
+menuText = menuFont.render("Tetris", True, mainTextColor)
 
 # Build A List Of Colored Tiles To Use For The Shapes
 colors = ["red", "orange", "yellow", "green", "blue", "purple", "pink"]
@@ -91,10 +93,10 @@ class Button:
 	def show(self):
 		gameDisplay.blit(self.surface, (self.x, self.y))
 
-	def wasClicked(self):
+	def isHovered(self):
 		x, y = pygame.mouse.get_pos()
 		if self.rect.collidepoint(x, y):
-			return True		
+			return True
 
 class Board:
 	"""Class for the tetris board"""
@@ -163,9 +165,11 @@ def runGame():
 	gameRunning = True 
 	mainMenuOpen = True
 	showingHighscores = False
+	showingControls = False
 	gameOver = False
 	currentShape, nextShape = Shape(), Shape() # First two shapes initialized
-	shapes = []
+	menuShapes = [Shape()]
+	backButton = Button("<", (50, 50), buttonFont, mainTextColor)
 
 # ------------ Start Of Game Loop --------------
 	while gameRunning:
@@ -193,11 +197,9 @@ def runGame():
 
 # ---------------- Main Menu --------------------
 		if mainMenuOpen:
-			menuShapes = [Shape()]
-			menuText = menuFont.render("Tetris", True, mainTextColor)
-
 			playButton = Button("Play", (displayWidth/3, 400), buttonFont, mainTextColor)
 			highscoreButton = Button("Highscores", (displayWidth/3, 500), buttonFont, mainTextColor)
+			controlsButton = Button("Controls", (displayWidth/3, 600), buttonFont, mainTextColor)
 
 		while mainMenuOpen:
 			gameDisplay.fill(backgroundColor)
@@ -210,6 +212,7 @@ def runGame():
 			# Show the menu buttons
 			playButton.show()
 			highscoreButton.show()
+			controlsButton.show()
 
 			pygame.display.update()
 
@@ -226,16 +229,19 @@ def runGame():
 						mainMenuOpen = False
 					if event.key == pygame.K_c:
 						mainMenuOpen = False
-				if event.type == pygame.MOUSEBUTTONUP:
-					if playButton.wasClicked():
+				if event.type == pygame.MOUSEBUTTONUP or event.type == pygame.KEYDOWN and event.key == pygame.K_l:
+					if playButton.isHovered():
 						mainMenuOpen = False
-					elif highscoreButton.wasClicked():
+					elif highscoreButton.isHovered():
 						mainMenuOpen = False
 						showingHighscores = True
+					elif controlsButton.isHovered():
+						mainMenuOpen = False
+						showingControls = True
 
 # -------------- HighScores Screen -------------------
 		if showingHighscores:
-			highscoreText = secondaryFont.render("Highscores", True, mainTextColor)
+			highscoreTitle = secondaryFont.render("Highscores", True, mainTextColor)
 			try: # load the previous score if it exists
 				with open('score.dat', 'rb') as file:
 					score = pickle.load(file)
@@ -249,8 +255,9 @@ def runGame():
 		while showingHighscores:
 			gameDisplay.fill(backgroundColor)
 			randomizedShapeDrop(menuShapes)
-			gameDisplay.blit(highscoreText, (displayWidth/4 - 20, displayHeight/4 - 150))
+			gameDisplay.blit(highscoreTitle, (displayWidth/4 - 20, displayHeight/4 - 150))
 			gameDisplay.blit(scoreText, (displayWidth/4 - 20, displayHeight/4))
+			backButton.show()
 			pygame.display.update()
 
 			# HighScores Screen Input Handling
@@ -263,16 +270,50 @@ def runGame():
 				if event.type == pygame.KEYDOWN:
 					if event.key == pygame.K_q:
 						showingHighscores = False
-						gameRunning = False
+						mainMenuOpen = True
 					if event.key == pygame.K_c:
 						showingHighscores = False
+				if event.type == pygame.MOUSEBUTTONUP:
+					if backButton.isHovered():
+						showingHighscores = False
+						mainMenuOpen = True
 
 				# if event.type == pygame.MOUSEBUTTONUP:
-				# 	if playButton.wasClicked():
+				# 	if playButton.isHovered():
 				# 		mainMenuOpen = False
-				# 	elif highscoreButton.wasClicked():
+				# 	elif highscoreButton.isHovered():
 				# 		mainMenuOpen = False
 				# 		showingHighscores = True
+
+# -------------- Controls Screen -------------------
+		if showingControls:
+			controlTitle = secondaryFont.render("Controls", True, mainTextColor)
+		while showingControls:
+			gameDisplay.fill(backgroundColor)
+			randomizedShapeDrop(menuShapes)
+			backButton.show()
+			gameDisplay.blit(controlTitle, (displayWidth/4 - 20, displayHeight/4 - 150))
+			pygame.display.update()
+
+			for event in pygame.event.get():
+				if event.type == pygame.QUIT:
+					showingControls = False
+					gameRunning = False
+					pygame.quit()
+					exit()
+				if event.type == pygame.KEYDOWN:
+					if event.key == pygame.K_q:
+						showingControls = False
+						mainMenuOpen = True
+				if event.type == pygame.MOUSEBUTTONDOWN:
+					if backButton.isHovered():
+						showingControls = False
+						mainMenuOpen = True
+
+
+					# if event.key == pygame.K_c:
+					# 	showingC = False
+					# NOT NEEDED?
 
 # -------------- Gameplay Handling -------------------
 		for event in pygame.event.get():
@@ -298,8 +339,7 @@ def runGame():
 				if event.key == pygame.K_DOWN or event.key == ord('s'):
 					currentShape.fallSpeedReset()
 				if event.key == pygame.K_q:
-					pygame.quit()
-					exit()
+					mainMenuOpen = True
 #  ---------------- Game Code -------------------
 		# Draw
 		gameDisplay.fill(backgroundColor)
