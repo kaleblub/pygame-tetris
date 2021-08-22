@@ -48,7 +48,7 @@ shapeRotationsList = [ # The Shapes With Each Of Their Rotations
 		[(0,1), (1,1), (2,1), (2,0)], 
 		[(0,0), (1,0), (1,1), (1,2)]
 	],
-	[ # T shape
+	[ # T shapeo
 		[(0,0), (1,0), (2,0), (1,1)], 
 		[(0,0), (0,1), (1,1), (0,2)], 
 		[(1,1), (0,2), (1,2), (2,2)], 
@@ -71,27 +71,35 @@ shapeRotationsList = [ # The Shapes With Each Of Their Rotations
 class Button:
 	"""Class for a button. Create a button, 
 	then blit the surface in the while loop"""
-	def __init__(self, text, pos, font, textColor="white", bg=backgroundColor, feedback=""):
+	def __init__(self, text, pos, font, textColor="white", bg=backgroundColor, hoveredEffect=False):
 		self.x, self.y = pos
 		self.font = font
 		self.textColor = textColor
-		if feedback == "":
-			self.feedback = "text"
-		else:
-			self.feedback = feedback
+		self.hoveredEffect = hoveredEffect
+		self.text = text
 		self.changeText(text, textColor, bg)
 
 	def changeText(self, text, textColor, bg=backgroundColor):
 		"""Change the text when you click"""
-		self.text = self.font.render(text, 1, textColor)
-		self.size = self.text.get_size()
+		self.renderedText = self.font.render(text, 1, textColor)
+		self.size = self.renderedText.get_size()
 		self.surface = pygame.Surface(self.size)
 		self.surface.fill(bg)
-		self.surface.blit(self.text, (0, 0))
+		self.surface.blit(self.renderedText, (0, 0))
 		self.rect = pygame.Rect(self.x, self.y, self.size[0], self.size[1])
 
 	def show(self):
+		if self.isHovered() and self.hoveredEffect == True:
+			self.showHovered()
+		else:
+			self.showNonHovered()
 		gameDisplay.blit(self.surface, (self.x, self.y))
+
+	def showHovered(self):
+		self.renderedText = self.font.render(text, 1, textColor)
+
+	def showNonHovered(self):
+		pass
 
 	def isHovered(self):
 		x, y = pygame.mouse.get_pos()
@@ -169,7 +177,12 @@ def runGame():
 	gameOver = False
 	currentShape, nextShape = Shape(), Shape() # First two shapes initialized
 	menuShapes = [Shape()]
-	backButton = Button("<", (50, 50), buttonFont, mainTextColor)
+	buttons = {
+	"playButton": Button("Play", (displayWidth/3, 400), buttonFont, mainTextColor),
+	"highscoreButton": Button("Highscores", (displayWidth/3, 500), buttonFont, mainTextColor),
+	"controlsButton": Button("Controls", (displayWidth/3, 600), buttonFont, mainTextColor),
+	"backButton": Button("<", (50, 50), buttonFont, mainTextColor)
+	}
 
 # ------------ Start Of Game Loop --------------
 	while gameRunning:
@@ -196,11 +209,6 @@ def runGame():
 						runGame()
 
 # ---------------- Main Menu --------------------
-		if mainMenuOpen:
-			playButton = Button("Play", (displayWidth/3, 400), buttonFont, mainTextColor)
-			highscoreButton = Button("Highscores", (displayWidth/3, 500), buttonFont, mainTextColor)
-			controlsButton = Button("Controls", (displayWidth/3, 600), buttonFont, mainTextColor)
-
 		while mainMenuOpen:
 			gameDisplay.fill(backgroundColor)
 
@@ -210,9 +218,9 @@ def runGame():
 			gameDisplay.blit(menuText, (displayWidth/4 - 30, displayHeight/4))
 
 			# Show the menu buttons
-			playButton.show()
-			highscoreButton.show()
-			controlsButton.show()
+			buttons["playButton"].show()
+			buttons["highscoreButton"].show()
+			buttons["controlsButton"].show()
 
 			pygame.display.update()
 
@@ -229,13 +237,18 @@ def runGame():
 						mainMenuOpen = False
 					if event.key == pygame.K_c:
 						mainMenuOpen = False
+					# if event.key == pygame.K_DOWN:
+						
+					# if event.key == pygame.K_UP:
+					
 				if event.type == pygame.MOUSEBUTTONUP or event.type == pygame.KEYDOWN and event.key == pygame.K_l:
-					if playButton.isHovered():
-						mainMenuOpen = False
-					elif highscoreButton.isHovered():
+					if buttons["playButton"].isHovered():
+						# mainMenuOpen = False
+						buttons["playButton"].changeText("Play", "white", "orange")
+					elif buttons["highscoreButton"].isHovered():
 						mainMenuOpen = False
 						showingHighscores = True
-					elif controlsButton.isHovered():
+					elif buttons["controlsButton"].isHovered():
 						mainMenuOpen = False
 						showingControls = True
 
@@ -257,7 +270,7 @@ def runGame():
 			randomizedShapeDrop(menuShapes)
 			gameDisplay.blit(highscoreTitle, (displayWidth/4 - 20, displayHeight/4 - 150))
 			gameDisplay.blit(scoreText, (displayWidth/4 - 20, displayHeight/4))
-			backButton.show()
+			buttons["backButton"].show()
 			pygame.display.update()
 
 			# HighScores Screen Input Handling
@@ -272,16 +285,16 @@ def runGame():
 						showingHighscores = False
 						mainMenuOpen = True
 					if event.key == pygame.K_c:
-						showingHighscores = False
+						showingHighscores = False	
 				if event.type == pygame.MOUSEBUTTONUP:
-					if backButton.isHovered():
+					if buttons["backButton"].isHovered():
 						showingHighscores = False
 						mainMenuOpen = True
 
 				# if event.type == pygame.MOUSEBUTTONUP:
-				# 	if playButton.isHovered():
+				# 	if buttons["playButton"].isHovered():
 				# 		mainMenuOpen = False
-				# 	elif highscoreButton.isHovered():
+				# 	elif buttons["highscoreButton"].isHovered():
 				# 		mainMenuOpen = False
 				# 		showingHighscores = True
 
@@ -291,7 +304,7 @@ def runGame():
 		while showingControls:
 			gameDisplay.fill(backgroundColor)
 			randomizedShapeDrop(menuShapes)
-			backButton.show()
+			buttons["backButton"].show()
 			gameDisplay.blit(controlTitle, (displayWidth/4 - 20, displayHeight/4 - 150))
 			pygame.display.update()
 
@@ -306,7 +319,7 @@ def runGame():
 						showingControls = False
 						mainMenuOpen = True
 				if event.type == pygame.MOUSEBUTTONDOWN:
-					if backButton.isHovered():
+					if buttons["backButton"].isHovered():
 						showingControls = False
 						mainMenuOpen = True
 
