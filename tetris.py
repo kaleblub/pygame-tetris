@@ -18,10 +18,20 @@ mainTextColor = "lightgoldenrod1"
 boardWidth = 10
 boardHeight = 20
 
+controlsMessage = """
+Mouse : Menu Nav
+P_Key : Pause Game
+Q_Key : Quit Game / Go Back
+Up Arrow | W-Key : Rotate Shape / Menu Nav
+Left Arrow | A-Key : Move Shape Left / Menu Nav
+Right Arrow | D-Key : Move Shape Right / Menu Nav
+Down Arrow | S-Key | Space Bar : Fall Boost / Menu Nav
+"""
+
 menuFont = pygame.font.SysFont(None, 200)
 secondaryFont = pygame.font.SysFont(None, 100)
 buttonFont = pygame.font.SysFont(None, 75)
-controlsFont = pygame.font.SysFont(None, 20)
+controlsFont = pygame.font.SysFont(None, 35)
 menuText = menuFont.render("Tetris", True, mainTextColor)
 
 # Build A List Of Colored Tiles To Use For The Shapes
@@ -67,6 +77,23 @@ shapeRotationsList = [ # The Shapes With Each Of Their Rotations
 	],
 	
 ]
+
+def blitMultiLineText(surface, text, position, font , color=pygame.Color("black")):
+    words = [word.split(' ') for word in text.splitlines()]  # 2D array where each row is a list of words.
+    space = font.size(' ')[0]  # The width of a space.
+    maxWidth, maxHeight = surface.get_size()
+    x, y = position
+    for line in words:
+        for word in line:
+            wordSurface = font.render(word, 0, color)
+            wordWidth, wordHeight = wordSurface.get_size()
+            if x + wordWidth >= maxWidth:
+                x = position[0]  # Reset the x.
+                y += wordHeight  # Start on new row.
+            surface.blit(wordSurface, (x, y))
+            x += wordWidth + space
+        x = position[0]  # Reset the x.
+        y += wordHeight  # Start on new row.
 
 class Button:
 	"""Class for a button. Create a button, 
@@ -122,11 +149,11 @@ class Shape:
 		self.y = -20
 		self.fallSpeed = 10
 		self.horizontalMoveSpeed = 0
+		self.w, self.h = self.color.get_size()
 
-	def drawShape(self, x: int, y: int): # Method for drawing the shape
-		w, h = self.color.get_size()
+	def draw(self, x: int, y: int): # Method for drawing the shape
 		for pos in self.currentRotation:
-			gameDisplay.blit(self.color, (x + pos[0]*w, y + pos[1]*h))
+			gameDisplay.blit(self.color, (self.x + pos[0]*self.w, self.y + pos[1]*self.h))
 
 	def randomColor(self): # Selects a random color
 		return choice(colorList)
@@ -166,7 +193,7 @@ def randomizedShapeDrop(shapeList):
 		if shape.y >= displayHeight:
 			shapeList.remove(shape)
 		shape.y += shape.fallSpeed/10
-		shape.drawShape(shape.x, shape.y)
+		shape.draw(shape.x, shape.y)
 
 # ------------- Main Game Function ---------------
 def runGame():
@@ -178,15 +205,16 @@ def runGame():
 	currentShape, nextShape = Shape(), Shape() # First two shapes initialized
 	menuShapes = [Shape()]
 	buttons = {
-	"playButton": Button("Play", (displayWidth/3, 400), buttonFont, mainTextColor),
-	"highscoreButton": Button("Highscores", (displayWidth/3, 500), buttonFont, mainTextColor),
-	"controlsButton": Button("Controls", (displayWidth/3, 600), buttonFont, mainTextColor),
-	"backButton": Button("<", (50, 50), buttonFont, mainTextColor)
+		"playButton": Button("Play", (displayWidth/3, 400), buttonFont, mainTextColor),
+		"highscoreButton": Button("Highscores", (displayWidth/3, 500), buttonFont, mainTextColor),
+		"controlsButton": Button("Controls", (displayWidth/3, 600), buttonFont, mainTextColor),
+		"backButton": Button("<", (50, 50), buttonFont, mainTextColor)
 	}
 
 # ------------ Start Of Game Loop --------------
 	while gameRunning:
-
+		gameDisplay.fill(backgroundColor)
+		
 # ----------- Game Over Menu -------------------
 		if gameOver:
 			gameOverText1 = menuFont.render("Game", True, mainTextColor)
@@ -306,6 +334,7 @@ def runGame():
 			randomizedShapeDrop(menuShapes)
 			buttons["backButton"].show()
 			gameDisplay.blit(controlTitle, (displayWidth/4 - 20, displayHeight/4 - 150))
+			blitMultiLineText(gameDisplay, controlsMessage, (displayWidth/10 - 20, displayHeight/4), controlsFont, mainTextColor)
 			pygame.display.update()
 
 			for event in pygame.event.get():
@@ -355,21 +384,15 @@ def runGame():
 					mainMenuOpen = True
 #  ---------------- Game Code -------------------
 		# Draw
-		gameDisplay.fill(backgroundColor)
-
-		pygame.display.flip() # Updates the whole screen
-
 		if currentShape.y >= displayHeight:
 			currentShape, nextShape = nextShape, Shape()
 		else:
 			currentShape.y += currentShape.fallSpeed
 			currentShape.x += currentShape.horizontalMoveSpeed
-		currentShape.drawShape(currentShape.x, currentShape.y)
-
-
-		pygame.display.flip() # Updates the whole screen
+		currentShape.draw(currentShape.x, currentShape.y)
 
 		# Update
+		# pygame.display.flip() # Updates the whole screen
 		pygame.display.update()	# Updates only specific sections
 		clock.tick(FPS)
 
